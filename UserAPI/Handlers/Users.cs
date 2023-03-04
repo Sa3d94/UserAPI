@@ -1,7 +1,15 @@
 using System;
+using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
+using System.Text;
 using System.Xml.Linq;
+using DataAccess.Dtos;
+using DataAccess.Interfaces;
+using Entity.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using MySqlX.XDevAPI.Common;
 using static Microsoft.AspNetCore.Http.Results;
 
 namespace UserAPI.Handlers
@@ -9,33 +17,96 @@ namespace UserAPI.Handlers
   public static class Users
   {
 
-    internal static async Task<IResult> GetUsers(string id)
+    internal static async Task<IResult> GetUsers(string id , IUsersRepository userRepository)
     {
-      return Ok("Test");
+      if (string.IsNullOrEmpty(id)) return BadRequest();
+
+      // Query The User from the Database
+      User user = await userRepository.GetUser(id);
+
+      if (user is null) return NotFound("User is not found!");
+
+      dynamic result;
+      if (user.MarketingConsent)
+      {
+        result = new UserDto
+        {
+          Id = user.Id,
+          FirstName = user.FirstName,
+          LastName = user.LastName,
+          Email = user.Email,
+          MarketingConsent = user.MarketingConsent
+        };
+      }
+      else
+      {
+        result = new UserNoConsent
+        {
+          Id = user.Id,
+          FirstName = user.FirstName,
+          LastName = user.LastName,
+          MarketingConsent = user.MarketingConsent
+        };
+
+      }
+
+
+      return Ok(result);
     }
-    internal static async Task<IResult> AddUser()
+
+    internal static async Task<IResult> AddUser( UserDto user , IUsersRepository userRepository, IEncryptService encryptService , IAuthService authService)
     {
-      return Ok("Test");
-      //if (user is null) return BadRequest();
-      //if (!MiniValidator.TryValidate(user, out var errors)) return BadRequest(errors);
 
-      //if (users.Users.Any(u => u.Email == user.Email))
-      //  return Conflict("Invalid `email`: A user with this email address already exists.");
+      if (user is null) return BadRequest();
 
-      //if (string.IsNullOrWhiteSpace(user.Username))
-      //{
-      //  user.Username = string.Join('_', user.FullName.Split(' ')).ToLower();
-      //  if (users.Users.Any(u => u.UserName == user.Username))
-      //    user.Username = user.Username + '_' + Guid.NewGuid().ToString("N").Substring(0, 4);
-      //}
-      //else if (users.Users.Any(u => u.UserName == user.Username))
-      //  return Conflict("Invalid `username`: A user with this username already exists.");
+      // Validation for all data annotation attributes 
+      ICollection<ValidationResult> results;
+      if (!Validate(user, out results))
+      {
+       return BadRequest(String.Join("\n", results.Select(o => o.ErrorMessage)));
+      }
 
-      //var newser = new User(user);
-      //var result = await users.CreateAsync(newser, user.Password);
-      //if (!result.Succeeded) return BadRequest(result.Errors);
+      // Check if the email already exists or not
+      var userExists = await userRepository.GetUserByEmail(user.Email);
+      if (userExists != null)
+        return Conflict("Invalid `email`: A user with this email address already exists.");
 
-      //return Created($"/users/{newser.Id}", newser);
+      // Create an ID
+      user.Id = encryptService.ComputeHash(user.Email);
+
+      User newUser = new User {
+        Id = user.Id,
+        FirstName = user.FirstName,
+        LastName = user.LastName,
+        Email = user.Email,
+        MarketingConsent = user.MarketingConsent
+      };
+
+      // Create user and save to database
+     var createdUser =  await userRepository.AddUser(newUser);
+
+      if (createdUser == null)
+      {
+        return BadRequest("An error occurred!");
+      }
+
+      // Create a Token and return
+      var response = authService.CreateToken(user);
+
+      return Created("/user", response);
+
+
+    }
+
+
+
+
+      // Validator for Data Annotations
+      private static bool Validate<T>(T obj, out ICollection<ValidationResult> results)
+    {
+      results = new List<ValidationResult>();
+
+      return Validator.TryValidateObject(obj, new ValidationContext(obj), results, true);
     }
 
   }

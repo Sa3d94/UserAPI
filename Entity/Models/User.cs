@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace UserAPI.Models;
+namespace Entity.Models;
 
 public partial class User
 {
