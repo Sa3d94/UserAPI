@@ -42,7 +42,8 @@ namespace DataAccess.Services
       List<Claim> claims = new List<Claim>
                       {
                           new Claim (ClaimTypes.Name, user.FirstName + " " + user.LastName),
-                  
+                          new Claim (ClaimTypes.Upn, user.Id)
+
                       };
 
       var tokenOptions = new JwtSecurityToken(
