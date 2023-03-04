@@ -17,23 +17,14 @@ namespace UserAPI.Handlers
   public static class Users
   {
 
-    internal static async Task<IResult> GetUsers(string id , IUsersRepository userRepository, IHttpContextAccessor _httpContextAccessor)
-
+    internal static async Task<IResult> GetUsers(string id , IUsersRepository userRepository)
     {
-     var _userID = _httpContextAccessor.HttpContext.User.Claims.Where(c => c.Type.Contains("upn")).FirstOrDefault().Value;
-
       if (string.IsNullOrEmpty(id)) return BadRequest();
 
       // Query The User from the Database
       User user = await userRepository.GetUser(id);
 
       if (user is null) return NotFound("User is not found!");
-
-      // Check if the User is querying his oqn data or not
-      // From Claims
-
-      if (user.Id != _userID) return Unauthorized();
-
 
       dynamic result;
       if (user.MarketingConsent)

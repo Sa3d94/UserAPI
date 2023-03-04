@@ -45,7 +45,6 @@ builder.Services.AddSwaggerGen(options =>
 
 // Configure DI Coontainer
 builder.Services.RegisterServices();
-builder.Services.RegisterHttpContext();
 
 
 // Configure the Database Context

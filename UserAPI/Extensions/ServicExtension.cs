@@ -13,11 +13,11 @@ namespace UserAPI.Extensions
 
     public static class ServiceExtension
     {
-    public static void RegisterHttpContext(this IServiceCollection services)
-    {
-      //services.TryAddSingleton<IActionContextAccessor, ActionContextAccessor>();
-      services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-    }
+    //public static void RegisterHttpContext(this IServiceCollection services)
+    //{
+    //  services.TryAddSingleton<IActionContextAccessor, ActionContextAccessor>();
+    //  services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+    //}
 
     public static void RegisterServices(this IServiceCollection services)
     {
